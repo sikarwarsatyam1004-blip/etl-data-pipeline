@@ -1,5 +1,24 @@
-.env
-venv/
+# Python
 __pycache__/
 *.pyc
+
+# Virtual Environment
+venv/
+.env
+
+# Airflow
+airflow/logs/
+airflow/dags/__pycache__/
+
+# Data files
+data/raw/
+data/processed/*.csv
+data/processed/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
 logs/
+*.log

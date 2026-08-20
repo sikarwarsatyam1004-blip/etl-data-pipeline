@@ -1,188 +1,428 @@
-# ETL Data Pipeline
+# Customer Orders ETL Pipeline with Apache Airflow
 
-A production-style ETL (Extract, Transform, Load) pipeline built using Python, Pandas, and PostgreSQL.
+## Project Overview
 
-The pipeline processes a raw customer orders dataset containing 100,000 records, performs data cleaning and validation, separates invalid records, and loads validated data into PostgreSQL.
+This project implements an end-to-end **Data Engineering ETL pipeline** using **Python, Apache Airflow, Docker, and PostgreSQL**.
 
-## Pipeline Overview
+The pipeline ingests raw customer order data, performs data cleaning and validation, executes data quality checks, loads processed data into PostgreSQL, and sends automated Slack notifications with execution metrics.
 
-Raw CSV
-↓
-Extract
-↓
-Transform & Clean
-↓
-Data Validation
-↓
-Valid / Rejected Records
-↓
-PostgreSQL
+---
 
-## Technologies Used
-
-- Python
-- Pandas
-- PostgreSQL
-- psycopg2
-- python-dotenv
-- pgAdmin 4
-- Git
-
-
-## Project Structure
+## Architecture
 
 ```text
-etl-pipeline/
-├── data/
-│   ├── raw/
-│   │   └── customer_orders_raw_100k.csv
-│   └── processed/
-│       ├── cleaned_orders.csv
-│       └── rejected_orders.csv
-├── logs/
-│   └── pipeline.log
-├── src/
-│   ├── inspect_data.py
-│   ├── transform_data.py
-│   ├── verify_data.py
-│   ├── load_data.py
-│   └── main.py
-├── .env
-├── .gitignore
-├── requirements.txt
-└── README.md
+                    Raw Data
+                        |
+                        v
+        customer_orders_raw_100k.csv
+                        |
+                        v
+                Apache Airflow DAG
+                        |
+        --------------------------------
+        |                              |
+        v                              v
+ transform_data.py              verify_data.py
+        |
+        v
+ cleaned_orders.csv
+ rejected_orders.csv
+        |
+        v
+ data_quality_check.py
+        |
+        v
+ data_quality_report.json
+        |
+        v
+ load_data.py
+        |
+        v
+ PostgreSQL Database
+        |
+        v
+ Slack Monitoring Alerts
+```
+
+## Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Python | ETL processing and data validation |
+| Apache Airflow | Workflow orchestration and scheduling |
+| Docker | Containerized execution environment |
+| PostgreSQL | Data storage |
+| Pandas | Data transformation |
+| Slack Webhook | Pipeline monitoring and alerts |
+| Git | Version control |
 
 
-## Pipeline Components
+## Project Workflow
 
-- `inspect_data.py` - Profiles the raw dataset, including missing values, duplicates, columns, and data types.
-- `transform_data.py` - Cleans, validates, transforms, and separates valid and rejected records.
-- `verify_data.py` - Performs final quality checks on processed data.
-- `load_data.py` - Loads validated records into PostgreSQL using a transaction with commit and rollback protection.
-- `main.py` - Runs the complete ETL pipeline in the correct sequence.
+The pipeline follows this workflow:
 
+### 1. Data Extraction
 
+The pipeline reads raw customer order data from:
 
+```text
+data/raw/customer_orders_raw_100k.csv
+```
 
-## Data Quality and Transformation Rules
+The dataset contains:
 
-The transformation stage applies multiple data-quality checks before loading records into PostgreSQL.
-
-- Removes duplicate records.
-- Handles missing email, city, state, age, unit price, payment method, and total amount values.
-- Validates email addresses using a regular expression.
-- Validates age and handles values outside the accepted range.
-- Validates quantity and corrects invalid quantities.
-- Validates unit prices to prevent invalid negative values.
-- Validates discount percentages.
-- Converts `order_date` into a proper datetime format and identifies invalid dates.
-- Standardizes inconsistent order statuses such as `Complete` and `SHIPPED`.
-- Recalculates `total_amount` using:
-
-  `quantity × unit_price × (1 - discount_pct / 100)`
-
-- Separates records that cannot safely pass validation into a rejected dataset.
-- Adds a rejection reason to rejected records.
-
-## Processing Results
-
-Starting dataset:
-
-- Raw records: **100,000**
-- Duplicate records removed: **2,000**
-- Records after duplicate removal: **98,000**
-- Rejected records: **531**
-- Valid records: **97,469**
-- Final PostgreSQL records: **97,469**
-
-Rejected records currently include:
-
-- **411** records with invalid order dates.
-- **120** records with invalid order statuses.
-
-The rejected records are stored separately in `data/processed/rejected_orders.csv` for investigation instead of being silently discarded.
+- Customer information
+- Order details
+- Payment information
+- Product information
+- Transaction details
 
 
+### 2. Data Transformation
 
-## PostgreSQL Loading
+File:
 
-Validated records are loaded into the PostgreSQL `orders` table.
+```text
+transform_data.py
+```
 
-The load process uses a full-refresh strategy:
+The transformation process includes:
 
-1. Connect to PostgreSQL.
-2. Start a database transaction.
-3. Truncate existing records from the `orders` table.
-4. Load the latest cleaned dataset using PostgreSQL `COPY`.
-5. Commit the transaction if loading succeeds.
-6. Roll back the transaction if loading fails.
+- Removing duplicate records
+- Handling missing values
+- Validating email formats
+- Validating age ranges
+- Validating quantity values
+- Validating pricing fields
+- Standardizing order status
+- Recalculating total amounts
+- Separating valid and rejected records
 
-This prevents partial or corrupted loads and makes the pipeline safe to rerun.
+Generated outputs:
 
-## Environment Variables
+```text
+data/processed/
 
-Database credentials are stored in a `.env` file instead of being hardcoded in Python.
+cleaned_orders.csv
+rejected_orders.csv
+```
+
+
+### 3. Data Quality Checks
+
+File:
+
+```text
+data_quality_check.py
+```
+
+Implemented validations:
+
+- Row count validation
+- Null percentage checks
+- Duplicate record checks
+- Schema validation
+
+Generated report:
+
+```text
+data_quality_report.json
+```
+
+
+### 4. Data Loading
+
+File:
+
+```text
+load_data.py
+```
+
+The pipeline loads validated records into PostgreSQL.
+
+Database:
+
+```text
+PostgreSQL → etl_project → orders table
+```
+
+
+### 5. Monitoring and Alerts
+
+After every DAG execution:
+
+- Success metrics are sent to Slack
+- Failure notifications are triggered
+- ETL execution statistics are tracked
+
+
+## Airflow DAG Details
+
+DAG Name:
+
+```text
+customer_orders_etl_pipeline
+```
+
+Schedule:
+
+```text
+Daily at 08:00 AM IST
+```
+
+Executor:
+
+```text
+CeleryExecutor
+```
+
+The DAG contains the following tasks:
+
+```text
+transform_data
+        |
+        v
+verify_data
+        |
+        v
+data_quality_check
+        |
+        v
+load_data
+```
+
+### Task Description
+
+| Task | Description |
+|------|-------------|
+| transform_data | Cleans raw customer order data and creates processed datasets |
+| verify_data | Validates cleaned data before loading |
+| data_quality_check | Performs row count, null, duplicate, and schema validation |
+| load_data | Loads validated records into PostgreSQL |
+
+### Airflow Features Used
+
+- DAG scheduling
+- Task dependencies
+- Retry mechanism
+- Task failure callbacks
+- Slack notifications
+- Execution monitoring
+
+
+## Data Quality Results
+
+The pipeline performs automated data quality validation before loading data into PostgreSQL.
+
+### Validation Checks
+
+| Check | Description | Result |
+|-------|-------------|--------|
+| Row Count Validation | Ensures processed data contains records | PASS |
+| Null Percentage Check | Validates missing values are within acceptable limits | PASS |
+| Duplicate Check | Ensures duplicate records are removed | PASS |
+| Schema Validation | Confirms required columns are available | PASS |
+
+### Latest Pipeline Metrics
+
+| Metric | Count |
+|--------|-------|
+| Input Records | 100,000 |
+| Records After Deduplication | 98,000 |
+| Valid Records | 97,469 |
+| Rejected Records | 531 |
+| Loaded Records | 97,469 |
+
+Generated reports:
+
+```text
+data/processed/
+
+etl_metrics.json
+data_quality_report.json
+```
+
+
+## Slack Monitoring Alerts
+
+The pipeline integrates with Slack using Incoming Webhooks for real-time monitoring.
+
+Notifications are automatically sent after DAG execution.
+
+### Success Notification
 
 Example:
 
 ```text
-DB_HOST=localhost
-DB_NAME=etl_project
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_PORT=5432
+✅ Airflow DAG Completed Successfully
+
+DAG: customer_orders_etl_pipeline
+
+📊 ETL Metrics
+
+Input Rows: 100000
+Rows After Deduplication: 98000
+Valid Rows: 97469
+Rejected Rows: 531
+Loaded Rows: 97469
+
+🔍 Data Quality Report
+
+Row Count Check: PASS
+Null Check: PASS
+Duplicate Check: PASS
+Schema Check: PASS
+
+Status: SUCCESS
 ```
 
-The `.env` file is excluded from Git using `.gitignore`.
+### Failure Notification
 
-## Installation
+Example:
 
-Create and activate a Python virtual environment, then install the dependencies:
+```text
+🚨 Airflow Task Failed
+
+DAG:
+customer_orders_etl_pipeline
+
+Task:
+transform_data
+
+Run ID:
+manual__xxxx
+
+Try Number:
+3
+```
+
+Slack alerts provide:
+
+- Pipeline success confirmation
+- Failure notifications
+- ETL execution metrics
+- Data quality validation status
+
+
+## Project Structure
+
+```
+etl-pipeline/
+
+├── airflow/
+│   ├── dags/
+│   │   ├── customer_orders_etl_dag.py
+│   │   ├── transform_data.py
+│   │   ├── verify_data.py
+│   │   ├── data_quality_check.py
+│   │   └── load_data.py
+│   │
+│   ├── docker-compose.yaml
+│   ├── config/
+│   ├── logs/
+│   └── plugins/
+│
+├── data/
+│   ├── raw/
+│   │   └── customer_orders_raw_100k.csv
+│   │
+│   └── processed/
+│       ├── cleaned_orders.csv
+│       ├── rejected_orders.csv
+│       ├── etl_metrics.json
+│       └── data_quality_report.json
+│
+├── README.md
+├── requirements.txt
+└── .gitignore
+```
+
+
+## Running the Project
+
+### Prerequisites
+
+Install:
+
+- Docker Desktop
+- Python 3.x
+- Git
+
+
+### Start Airflow Environment
+
+Navigate to the Airflow directory:
 
 ```bash
-pip install -r requirements.txt
+cd airflow
 ```
 
-Create the PostgreSQL database:
-
-```text
-etl_project
-```
-
-Create the `orders` table before running the pipeline.
-
-## Running the Pipeline
-
-Run the complete ETL pipeline from the project root:
+Start the containers:
 
 ```bash
-python src/main.py
+docker compose up -d
 ```
 
-The pipeline automatically executes:
+Verify running containers:
+
+```bash
+docker ps
+```
+
+
+### Access Airflow UI
+
+Open:
 
 ```text
-transform_data.py
-        ↓
-verify_data.py
-        ↓
-load_data.py
-        ↓
-PostgreSQL
+http://localhost:8080
 ```
 
-A successful run ends with:
+Login:
 
 ```text
-===== ETL PIPELINE COMPLETED SUCCESSFULLY =====
+Username: airflow
+Password: airflow
 ```
 
-## Logging
 
-Pipeline execution events are written to:
+### Run the ETL Pipeline
+
+From the Airflow UI:
+
+1. Open DAGs
+2. Select:
 
 ```text
-logs/pipeline.log
+customer_orders_etl_pipeline
 ```
 
-The log records timestamps, successful processing stages, and pipeline failures for troubleshooting.
+3. Click:
+
+```text
+Trigger DAG
+```
+
+
+### Stop Environment
+
+To stop Airflow:
+
+```bash
+docker compose down
+```
+
+
+## Future Improvements
+
+The following enhancements can be added to further improve this project:
+
+- Add Power BI or Tableau dashboard for analytics visualization
+- Add automated unit testing for ETL functions
+- Add CI/CD pipeline using GitHub Actions
+- Deploy Airflow and PostgreSQL on cloud platforms (AWS/GCP/Azure)
+- Add data lineage tracking
+- Integrate Great Expectations for advanced data quality validation
+- Add monitoring dashboards using Grafana and Prometheus
+- Add incremental data loading instead of full refresh
+- Add metadata tracking for pipeline executions
