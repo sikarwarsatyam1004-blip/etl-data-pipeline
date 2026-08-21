@@ -415,6 +415,59 @@ docker compose down
 ```
 
 
+## CI/CD Pipeline
+
+This project uses **GitHub Actions** to automatically validate every code change before merging.
+
+### CI Workflow
+
+```text
+Developer Push
+       |
+       v
+GitHub Actions
+       |
+       v
+Checkout Repository
+       |
+       v
+Create CI Environment
+       |
+       v
+Validate Docker Compose
+       |
+       v
+Start PostgreSQL Container
+       |
+       v
+Install Python Dependencies
+       |
+       v
+Run Pytest Tests
+       |
+       v
+Validate ETL Files
+       |
+       v
+Pipeline Passed
+```
+
+### Automated Checks
+
+The CI pipeline performs:
+
+- Docker Compose configuration validation
+- PostgreSQL container health validation
+- Python syntax validation
+- ETL pipeline file validation
+- Automated pytest execution
+
+### CI Status
+
+![ETL Pipeline CI](https://github.com/sikarwarsatyam1004-blip/etl-data-pipeline/actions/workflows/ci.yml/badge.svg)
+
+
+
 ## Future Improvements
 
 The following enhancements can be added to further improve this project:
