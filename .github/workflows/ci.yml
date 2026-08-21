@@ -45,9 +45,16 @@ jobs:
         uses: actions/checkout@v4
 
 
+      - name: Create CI environment file
+        run: |
+          touch airflow/.env
+          echo "AIRFLOW_UID=50000" >> airflow/.env
+          echo "SLACK_WEBHOOK_URL=test" >> airflow/.env
+
+
       - name: Validate Docker Compose configuration
         run: docker compose -f airflow/docker-compose.yaml config
-        
+
 
       - name: Setup Python
         uses: actions/setup-python@v5
