@@ -112,38 +112,36 @@ jobs:
           test -f airflow/dags/load_data.py
 
 
-
 docker-build:
 
-    needs: validate
+  needs: validate
 
-    runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: write
+  permissions:
+    contents: read
+    packages: write
 
-    steps:
+  steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
 
-      - name: Build Docker image
-        run: |
-          docker build \
-          -t ghcr.io/${{ github.repository }}/etl-data-pipeline:latest .
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
 
-      - name: Push Docker image
-        run: |
-          docker push ghcr.io/${{ github.repository }}/etl-data-pipeline:latest
-          
+    - name: Build Docker image
+      run: |
+        docker build \
+         -t ghcr.io/${{ github.repository }}/etl-data-pipeline:latest .
+
+
+    - name: Push Docker image
+      run: |
+        docker push ghcr.io/${{ github.repository }}/etl-data-pipeline:latest
