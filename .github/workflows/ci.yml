@@ -45,6 +45,9 @@ jobs:
         uses: actions/checkout@v4
 
 
+      - name: Validate Docker Compose configuration
+        run: docker compose -f airflow/docker-compose.yaml config
+        
 
       - name: Setup Python
         uses: actions/setup-python@v5
