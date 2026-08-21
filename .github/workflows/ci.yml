@@ -21,7 +21,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-
     services:
 
       postgres:
@@ -45,7 +44,6 @@ jobs:
 
     steps:
 
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -58,7 +56,8 @@ jobs:
 
 
       - name: Validate Docker Compose configuration
-        run: docker compose -f airflow/docker-compose.yaml config
+        run: |
+          docker compose -f airflow/docker-compose.yaml config
 
 
       - name: Setup Python
@@ -67,18 +66,15 @@ jobs:
           python-version: "3.12"
 
 
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
 
 
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
-
 
 
       - name: Check PostgreSQL connection
@@ -90,17 +86,14 @@ jobs:
           -c "SELECT version();"
 
 
-
       - name: Validate Python syntax
         run: |
           python -m compileall airflow/dags
 
 
-
       - name: Run pytest
         run: |
           pytest tests/
-
 
 
       - name: Check ETL files
@@ -112,36 +105,39 @@ jobs:
           test -f airflow/dags/load_data.py
 
 
-docker-build:
 
-  needs: validate
+  docker-build:
 
-  runs-on: ubuntu-latest
+    needs: validate
 
-  permissions:
-    contents: read
-    packages: write
-
-  steps:
-
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    runs-on: ubuntu-latest
 
 
-    - name: Login to GHCR
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: write
 
 
-    - name: Build Docker image
-      run: |
-        docker build \
-         -t ghcr.io/${{ github.repository }}/etl-data-pipeline:latest .
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
 
-    - name: Push Docker image
-      run: |
-        docker push ghcr.io/${{ github.repository }}/etl-data-pipeline:latest
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Build Docker image
+        run: |
+          docker build \
+          -t ghcr.io/${{ github.repository }}/etl-data-pipeline:latest .
+
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${{ github.repository }}/etl-data-pipeline:latest
