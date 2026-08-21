@@ -1,0 +1,47 @@
+name: ETL Pipeline CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+  validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+
+      - name: Validate Python syntax
+        run: |
+          python -m compileall airflow/dags
+
+
+      - name: Check ETL files
+        run: |
+          test -f airflow/dags/customer_orders_etl_dag.py
+          test -f airflow/dags/transform_data.py
+          test -f airflow/dags/verify_data.py
+          test -f airflow/dags/data_quality_check.py
+          test -f airflow/dags/load_data.py
+          

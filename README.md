@@ -1,5 +1,7 @@
 # Customer Orders ETL Pipeline with Apache Airflow
 
+![ETL Pipeline CI](https://github.com/sikarwarsatyam1004-blip/etl-data-pipeline/actions/workflows/ci.yml/badge.svg)
+
 ## Project Overview
 
 This project implements an end-to-end **Data Engineering ETL pipeline** using **Python, Apache Airflow, Docker, and PostgreSQL**.
