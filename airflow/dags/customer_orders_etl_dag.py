@@ -48,6 +48,8 @@ def dag_success_alert(context):
 
 
     message = {
+        "username": "Airflow ETL Alerts",
+        "icon_emoji": ":white_check_mark:",
         "text": (
             "✅ Airflow DAG Completed Successfully\n\n"
             f"DAG: {dag_run.dag_id}\n"
